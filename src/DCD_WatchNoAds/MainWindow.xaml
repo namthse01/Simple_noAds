@@ -1,0 +1,61 @@
+<Window x:Class="DCDWatch.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="DCD_WatchNoAds" Height="800" Width="1280" MinHeight="420" MinWidth="640"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource Bg}"
+        Foreground="{StaticResource Text}" FontSize="13" Icon="appicon.ico"
+        FontFamily="Segoe UI" TextOptions.TextFormattingMode="Display"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+  <Grid x:Name="Root">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+
+    <!-- thanh công cụ -->
+    <Grid x:Name="Bar" Grid.Row="0" Margin="10,8,10,8">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Button x:Name="BtnBack" Grid.Column="0" Content="◀" Width="36" Style="{StaticResource BtnGhost}"
+              Click="BtnBack_Click" ToolTip="Quay lại (Alt+←)"/>
+      <Button x:Name="BtnFwd" Grid.Column="1" Content="▶" Width="36" Margin="4,0,0,0"
+              Style="{StaticResource BtnGhost}" Click="BtnFwd_Click" ToolTip="Tiến tới (Alt+→)"/>
+      <Button x:Name="BtnReload" Grid.Column="2" Content="⟳" Width="36" Margin="4,0,0,0"
+              Style="{StaticResource BtnGhost}" FontSize="15" Click="BtnReload_Click" ToolTip="Tải lại (F5)"/>
+      <TextBox x:Name="TxtAddr" Grid.Column="3" Margin="8,0,8,0" KeyDown="TxtAddr_KeyDown"
+               GotKeyboardFocus="TxtAddr_GotFocus"/>
+      <Button Grid.Column="4" Content="Đi" Width="48" Style="{StaticResource BtnBase}" Click="BtnGo_Click"/>
+      <Button x:Name="BtnStar" Grid.Column="5" Content="☆" Width="36" Margin="6,0,0,0" FontSize="15"
+              Style="{StaticResource BtnGhost}" Click="BtnStar_Click" ToolTip="Lưu / bỏ lưu trang này"/>
+      <Button x:Name="BtnSaved" Grid.Column="6" Content="☰  Đã lưu" Margin="4,0,0,0"
+              Style="{StaticResource BtnGhost}" Click="BtnSaved_Click" ToolTip="Các trang đã lưu"/>
+      <CheckBox x:Name="ChkAdBlock" Grid.Column="7" Content="Chặn QC" Margin="12,0,0,0"
+                ToolTip="Chặn quảng cáo lén — trang không biết là đang bị chặn. Trang nào lỗi thì bỏ tick."
+                Checked="ChkAdBlock_Changed" Unchecked="ChkAdBlock_Changed"/>
+      <StackPanel Grid.Column="8" Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBlock x:Name="LblBlocked" Foreground="{StaticResource Muted}" FontSize="12"
+                   VerticalAlignment="Center" Margin="10,0,2,0" MinWidth="34"
+                   ToolTip="Số quảng cáo đã chặn trên trang này"/>
+        <Button x:Name="BtnPopup" Content="↗ Mở link vừa chặn" Margin="6,0,0,0" Padding="10,5"
+                Style="{StaticResource BtnBase}" Background="{StaticResource Warn}"
+                Visibility="Collapsed" Click="BtnPopup_Click"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- trình duyệt -->
+    <Border x:Name="Frame" Grid.Row="1" Background="#000000">
+      <wv2:WebView2 x:Name="Web"/>
+    </Border>
+  </Grid>
+</Window>

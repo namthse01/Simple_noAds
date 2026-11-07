@@ -3,6 +3,18 @@
 Trình duyệt nhỏ cho Windows để **xem phim không quảng cáo** — mà trang **không biết** là đang bị chặn,
 nên không hiện bảng "hãy tắt adblock".
 
+## Cài đặt
+
+1. Tải **`DCD_WatchNoAds.exe`** ở [Releases](https://github.com/namthse01/Simple_noAds/releases)
+2. Nháy đúp → bấm **Cài đặt** → xong, có shortcut ngoài Desktop
+
+Không cần cài .NET hay gì khác, không cần quyền admin. Windows 10/11.
+
+- Windows hiện **"Windows protected your PC"** (do exe chưa ký số) → bấm **More info** → **Run anyway**.
+- Có bản mới: tải exe mới về, nháy đúp → **Cập nhật**. Trang đã lưu vẫn còn.
+- Gỡ: **Settings → Apps → Installed apps → DCD_WatchNoAds → Uninstall**.
+- Không muốn cài: bấm **Chạy luôn, không cài** trên bảng cài đặt.
+
 ## Chặn lén thế nào
 
 Trang chống adblock hay dò theo mấy kiểu dưới đây, và app né từng kiểu:
@@ -25,18 +37,21 @@ Ngoài danh sách host quảng cáo, app còn bắt script nạp quảng cáo t�
 - Cửa sổ bật ngầm bị chặn; tab mới sang tên miền khác bị chặn nhưng hiện nút **↗ Mở link vừa chặn**
 - Bỏ tick **Chặn QC** nếu trang nào hiển thị lỗi
 
-## Build & cài
+## Build từ mã nguồn
 
 Cần [.NET SDK 10](https://dotnet.microsoft.com/download) và WebView2 Runtime (Windows 10/11 có sẵn).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File build.ps1            # build + cài + shortcut Desktop/Start Menu
+powershell -ExecutionPolicy Bypass -File build.ps1            # build + cài vào máy này
 powershell -ExecutionPolicy Bypass -File build.ps1 -NoInstall # chỉ build ra dist\DCD_WatchNoAds.exe
 ```
 
-`dist\DCD_WatchNoAds.exe` là một file duy nhất, tự chứa .NET runtime (~59 MB) — chép sang máy khác chạy luôn.
+`dist\DCD_WatchNoAds.exe` là **một file duy nhất** (~59 MB, tự chứa .NET runtime), vừa là app vừa là bộ cài —
+file này đem lên Releases hoặc gửi thẳng cho người khác.
 
-Chạy thử khi sửa code: `dotnet run --project src\DCD_WatchNoAds`
+Lệnh dòng lệnh của exe: `--install` (cài im lặng) · `--uninstall [--quiet]` · `--portable` (chạy không cài).
+
+Chạy thử khi sửa code: `dotnet run --project src\DCD_WatchNoAds` (bản Debug không hỏi cài).
 
 ## Cấu trúc
 
@@ -45,6 +60,8 @@ src/DCD_WatchNoAds/
   MainWindow.xaml(.cs)   cửa sổ: thanh địa chỉ, toàn màn hình, trang đã lưu, chặn tab mới
   StealthBlock.cs        luật chặn + trả lời giả + script chạy trong trang
   Store.cs               cấu hình (%LOCALAPPDATA%\DCD_WatchNoAds\settings.json)
+  Setup.cs               tự cài / cập nhật / gỡ cài đặt (%LOCALAPPDATA%\Programs\DCD_WatchNoAds)
+  InstallWindow.xaml     bảng cài đặt khi chạy exe từ ngoài thư mục cài
   Theme.xaml             bảng màu Catppuccin Mocha
 build.ps1                đóng gói + cài
 ```
