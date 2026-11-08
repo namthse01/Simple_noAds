@@ -269,11 +269,176 @@ public static class StealthBlock
             } catch (e) {}
           };
 
-          var quet = function () { gan(); xuyen(); };
+          // ---- QC co nut tat ("Tat QC x", "Close ad", "광고 닫기", "关闭广告"...): dung nut lam dau
+          //      de tim khung QC roi AN HAN khung do (display:none). Khong bam, khong dung chuot. ----
+          // bo dau, chu thuong — tu dien ben duoi cung di qua ham nay nen moi ngon ngu so khop nhu nhau
+          var bo = function (s) {
+            return (s || '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '')
+              .replace(/đ/g, 'd').replace(/ß/g, 'ss').replace(/\s+/g, ' ').trim();
+          };
+          // "dong / an / bo qua" — nhieu ngon ngu
+          var DONG = [
+            'close', 'hide', 'skip', 'dismiss',                                  // en
+            'tắt', 'đóng', 'ẩn', 'bỏ qua', 'đóng lại',                           // vi
+            '关闭', '關閉', '关掉', '關掉', '隐藏', '隱藏', '跳过', '跳過', '收起',  // zh
+            '閉じる', '非表示', 'スキップ', '消す',                               // ja
+            '닫기', '숨기기', '건너뛰기', '숨김', '닫음',                         // ko
+            'बंद', 'बंद करें', 'छोड़ें', 'छुपाएं', 'स्किप',                         // hi
+            'ปิด', 'ข้าม', 'ซ่อน',                                                // th
+            'tutup', 'lewati', 'sembunyikan',                                    // id / ms
+            'cerrar', 'ocultar', 'saltar', 'omitir', 'fechar', 'pular',          // es / pt
+            'fermer', 'masquer', 'passer', 'ignorer',                            // fr
+            'schließen', 'ausblenden', 'überspringen',                           // de
+            'chiudi', 'nascondi', 'salta', 'sluiten', 'verbergen', 'overslaan',  // it / nl
+            'zamknij', 'ukryj', 'pomiń', 'kapat', 'gizle', 'atla',               // pl / tr
+            'закрыть', 'скрыть', 'пропустить', 'закрити',                        // ru / uk
+            'إغلاق', 'اغلاق', 'تخطي', 'إخفاء', 'بستن', 'סגור'                    // ar / fa / he
+          ].map(bo);
+          // "quang cao"
+          var QC = [
+            'ad', 'ads', 'advert', 'advertisement', 'advertising', 'sponsored', 'banner',
+            'qc', 'quảng cáo', '广告', '廣告', '広告', '광고', 'विज्ञापन', 'ऐड', 'โฆษณา', 'iklan',
+            'anuncio', 'anuncios', 'anúncio', 'publicidad', 'publicidade', 'pubblicità', 'pub',
+            'publicité', 'annonce', 'werbung', 'anzeige', 'advertentie', 'reklam', 'reklama',
+            'реклама', 'рекламу', 'إعلان', 'اعلان', 'الإعلان', 'تبلیغ', 'פרסומת'
+          ].map(bo);
+          var DAU_X = /[×✕✖✗✘╳❌]/g;
+          // chu Latin thi phai dung thanh tu rieng ("an" khong khop "anime");
+          // chu CJK / Thai khong co dau cach nen so chuoi con
+          var coTu = function (t, ds) {
+            for (var i = 0; i < ds.length; i++) {
+              var w = ds[i];
+              if (/^[a-z0-9 ]+$/.test(w)) {
+                var p = t.indexOf(w);
+                while (p >= 0) {
+                  var a = t.charAt(p - 1), b = t.charAt(p + w.length);
+                  if (!/[a-z0-9]/.test(a) && !/[a-z0-9]/.test(b)) return true;
+                  p = t.indexOf(w, p + 1);
+                }
+              } else if (t.indexOf(w) >= 0) return true;
+            }
+            return false;
+          };
+          // 2 = chac chan nut tat QC (co ca "dong" lan "quang cao")
+          // 1 = nut tat chung chung ("x", "Close") -> chi tin khi khung quanh no dung la QC
+          var loai = function (raw) {
+            var t = bo(raw);
+            if (!t || t.length > 30) return 0;
+            var g = t.replace(DAU_X, ' ').replace(/[\s\-–—_:|·•()\[\]!.,]+/g, ' ').trim();
+            if (coTu(g, DONG) && coTu(g, QC)) return 2;
+            if (!g || g === 'x' || DONG.indexOf(g) >= 0) return 1;
+            return 0;
+          };
+
+          var hien = function (el) {
+            try { return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length); } catch (e) { return false; }
+          };
+          var linkNgoai = function (a) {
+            try {
+              var h = a.getAttribute('href');
+              if (!h || /^\s*(#|javascript:)/i.test(h)) return false;
+              return new URL(h, location.href).hostname !== location.hostname;
+            } catch (e) { return false; }
+          };
+          // co anh/iframe co banner (>= 60x30) — icon nho canh nut thi khong tinh
+          var coBanner = function (el) {
+            var ms = el.querySelectorAll('img,iframe,canvas,[style*="background-image"]');
+            for (var i = 0; i < ms.length; i++) {
+              var m = ms[i], r = m.getBoundingClientRect();
+              if (r.width >= 60 && r.height >= 30) return true;
+              // anh chua tai xong (chua co kich thuoc) van tinh — de an TRUOC khi banner kip hien;
+              // tru khi khai bao san la anh nho (icon)
+              if (m.tagName === 'IMG' && !(m.complete && m.naturalWidth)) {
+                var w = parseInt(m.getAttribute('width'), 10);
+                if (!(w > 0 && w < 60)) return true;
+              }
+            }
+            return false;
+          };
+          // khung QC = to tien gan nhat co banner, gan nhu khong co chu, khong chua video
+          var khungQC = function (nut, chac) {
+            var el = nut.parentElement;
+            for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+              if (el === document.body || el === document.documentElement) return null;
+              if (!coBanner(el)) continue;
+              if (el.querySelector('video,iframe[allowfullscreen],input,textarea')) return null;
+              var chu = bo(el.textContent).replace(bo(nut.textContent), '');
+              if (chu.length > 40) return null;
+              var r = el.getBoundingClientRect();
+              if (r.width * r.height > window.innerWidth * window.innerHeight * 0.6) return null;
+              if (chac) return el;
+              var as = el.querySelectorAll('a[href]');
+              for (var j = 0; j < as.length; j++) if (linkNgoai(as[j])) return el;
+              return el.querySelector('iframe') ? el : null;
+            }
+            return null;
+          };
+          var daAn = [];
+          var an = function (box) {
+            box.style.setProperty('display', 'none', 'important');
+            if (daAn.indexOf(box) < 0) daAn.push(box);
+          };
+          // KHONG bam nut nao ca — chi an khung QC. Nut tat hien tre (sau vai giay) van tinh.
+          var xet = function (nut, k) {
+            if (!k) return;
+            var box = khungQC(nut, k === 2);
+            if (box) an(box);
+          };
+          var tatQC = function () {
+            try {
+              if (!document.body) return;
+              for (var k = 0; k < daAn.length; k++)        // trang bat lai thi an lai
+                if (hien(daAn[k])) daAn[k].style.setProperty('display', 'none', 'important');
+              var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+              var seen = new Set(), n;
+              while ((n = w.nextNode())) {
+                var v = n.nodeValue;
+                if (!v || v.length > 30 || !v.trim()) continue;
+                var el = n.parentElement;
+                // "Tat QC" va "x" hay nam o 2 the con canh nhau -> xet ca the cha
+                for (var d = 0; el && d < 2; d++, el = el.parentElement) {
+                  if (seen.has(el)) break;
+                  seen.add(el);
+                  if ((el.textContent || '').length > 30) break;
+                  xet(el, loai(el.textContent));
+                }
+              }
+              // nut chi co icon: doc nhan an (aria-label / title / alt) — moi ngon ngu nhu tren;
+              // ten class/id kieu "close", "btn-close" chi tinh la nut chung chung
+              var ic = document.querySelectorAll(
+                '[aria-label],[title],img[alt],[class*="close" i],[id*="close" i],[class*="tat-qc" i],[class*="dong-qc" i]');
+              for (var m = 0; m < ic.length; m++) {
+                var e2 = ic[m];
+                if (seen.has(e2) || (e2.textContent || '').trim().length > 3) continue;
+                var kk = Math.max(loai(e2.getAttribute('aria-label')), loai(e2.getAttribute('title')),
+                                  e2.tagName === 'IMG' ? loai(e2.getAttribute('alt')) : 0);
+                if (!kk && /close|tat-qc|dong-qc/i.test((e2.getAttribute('class') || '') + ' ' + (e2.id || ''))) kk = 1;
+                xet(e2, kk);
+              }
+            } catch (e) {}
+          };
+
+          var quet = function () { gan(); xuyen(); tatQC(); };
           try { document.addEventListener('DOMContentLoaded', quet); } catch (e) {}
           try {
             var lan = 0;
             var hen = setInterval(function () { quet(); if (++lan >= 20) clearInterval(hen); }, 1000);
+          } catch (e) {}
+          // Moi lan trang them the moi (ca luc dang tai trang lan dau) -> quet ngay trong khung hinh do,
+          // TRUOC khi trinh duyet ve ra man hinh => banner khong kip hien len lan nao.
+          try {
+            // trang nao DOM doi lien tuc ma quet ton > 8ms thi gian ra 0.5s/lan cho do nang may
+            var cho = false, cham = false;
+            var chay = function () {
+              var t0 = performance.now();
+              cho = false; tatQC();
+              cham = performance.now() - t0 > 8;
+            };
+            new MutationObserver(function () {
+              if (cho) return;
+              cho = true;
+              if (cham) setTimeout(chay, 500); else requestAnimationFrame(chay);
+            }).observe(document, { childList: true, subtree: true });
           } catch (e) {}
           quet();
         })();

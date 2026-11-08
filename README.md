@@ -30,6 +30,20 @@ Trang chống adblock hay dò theo mấy kiểu dưới đây, và app né từn
 Ngoài danh sách host quảng cáo, app còn bắt script nạp quảng cáo từ **tên miền ngẫu nhiên**
 (đổi liên tục, kiểu `cd.dirdumaigre.com/s91AwcQjSTBG/152727`) theo hình dạng link.
 
+### Banner có nút tắt — ẩn luôn từ đầu
+
+Banner cá cược / catfish do chính trang phim tự đăng (không qua mạng quảng cáo) thường kèm nút
+**"Tắt QC ×"**. App dùng nút đó làm dấu để tìm khung banner rồi **ẩn hẳn khung**. App **không bấm** nút nào,
+và banner được ẩn trước khi trang kịp vẽ nên không chớp lên lần nào, kể cả banner chèn vào muộn.
+
+- Nhận nút tắt ở nhiều thứ tiếng: Việt, Anh, Trung, Nhật, Hàn, Hindi, Thái, Indonesia, Nga, Ả Rập,
+  Tây Ban Nha, Bồ Đào Nha, Pháp, Đức, Thổ Nhĩ Kỳ… Nút chỉ có icon thì app đọc nhãn ẩn của nút (`aria-label`, `title`).
+- Nút ghi rõ "tắt + quảng cáo" (`Tắt QC`, `Close ad`, `광고 닫기`, `关闭广告`…) được tin ngay.
+  Nút chung chung (`×`, `Close`) chỉ tính khi khung quanh nó có ảnh dẫn link ra tên miền ngoài.
+- App không đụng vào khung có video, ô nhập, nhiều chữ hoặc chiếm quá nửa màn hình
+  (player, form đăng nhập, bài viết).
+- Banner **không có** nút tắt thì không bị ẩn theo cách này.
+
 ## Tính năng
 
 - Video bấm toàn màn hình → cả cửa sổ toàn màn hình · `F11` bật/tắt · `Esc` thoát · `Ctrl+L` tới thanh địa chỉ
