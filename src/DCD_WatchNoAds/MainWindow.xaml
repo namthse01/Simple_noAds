@@ -47,6 +47,9 @@
         <TextBlock x:Name="LblBlocked" Foreground="{StaticResource Muted}" FontSize="12"
                    VerticalAlignment="Center" Margin="10,0,2,0" MinWidth="34"
                    ToolTip="Số quảng cáo đã chặn trên trang này"/>
+        <TextBlock x:Name="LblNote" Foreground="{StaticResource Warn}" FontSize="12" MaxWidth="320"
+                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="8,0,0,0"
+                   Visibility="Collapsed"/>
         <Button x:Name="BtnPopup" Content="↗ Mở link vừa chặn" Margin="6,0,0,0" Padding="10,5"
                 Style="{StaticResource BtnBase}" Background="{StaticResource Warn}"
                 Visibility="Collapsed" Click="BtnPopup_Click"/>

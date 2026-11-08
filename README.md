@@ -51,6 +51,30 @@ và banner được ẩn trước khi trang kịp vẽ nên không chớp lên l
 - Cửa sổ bật ngầm bị chặn; tab mới sang tên miền khác bị chặn nhưng hiện nút **↗ Mở link vừa chặn**
 - Bỏ tick **Chặn QC** nếu trang nào hiển thị lỗi
 
+## An toàn khi duyệt web
+
+Trang phim lậu và quảng cáo bẩn hay tìm cách đưa người xem sang trang lừa đảo hoặc cài mã độc lên máy.
+App chặn các đường đó như sau:
+
+| Trò của trang | App làm gì |
+|---|---|
+| Bấm vào đâu cũng bị lái sang trang khác (`location.href = ...`) | Chặn. Chỉ cho đi khi **bạn bấm một link thật** |
+| Link trong suốt phủ cả trang, bấm đâu cũng trúng | Chặn |
+| Tự chuyển trang sau vài giây, hoặc dùng meta refresh | Chặn |
+| Mở tab hoặc cửa sổ mới (popup, popunder) | Chặn |
+| Tự tải `.exe`, `.msi`, `.bat`, `.apk`, `.iso`… | Chặn thẳng, không hỏi |
+| Tải file khác (`.zip`, `.pdf`…) | Hỏi bạn trước, mặc định là **No** |
+| Xin quyền gửi thông báo ("bấm Cho phép để chứng minh không phải robot"), camera, micro, vị trí, clipboard | Tự từ chối, không hiện hộp hỏi |
+| Mở ứng dụng ngoài kiểu lừa (`search-ms:`, `ms-msdt:`…) | Chặn thẳng |
+| Mở ứng dụng ngoài khác (`mailto:`, `magnet:`…) | Trang tự đòi thì chặn. Bạn tự bấm thì app hỏi trước |
+| Trang hoặc file đã bị báo là lừa đảo, mã độc | Microsoft SmartScreen chặn |
+
+- Chuyển trang trong cùng một site, bấm link thật, nút quay lại và tải lại trang vẫn chạy bình thường.
+- Mỗi lần chặn, thanh công cụ hiện một dòng **⚠** cho biết vừa chặn gì. Chặn chuyển trang hoặc tab mới thì có thêm
+  nút **↗ Mở link vừa chặn** trong 10 giây, nếu bạn thật sự muốn đi.
+- Phần tải file, xin quyền và mở ứng dụng ngoài **luôn bật**, kể cả khi bỏ tick **Chặn QC**.
+- Vì từ chối mọi quyền, các trang cần camera hay micro (gọi video, họp online) sẽ không dùng được trong app.
+
 ## Build từ mã nguồn
 
 Cần [.NET SDK 10](https://dotnet.microsoft.com/download) và WebView2 Runtime (Windows 10/11 có sẵn).
@@ -72,7 +96,8 @@ Chạy thử khi sửa code: `dotnet run --project src\DCD_WatchNoAds` (bản De
 ```
 src/DCD_WatchNoAds/
   MainWindow.xaml(.cs)   cửa sổ: thanh địa chỉ, toàn màn hình, trang đã lưu, chặn tab mới
-  StealthBlock.cs        luật chặn + trả lời giả + script chạy trong trang
+  StealthBlock.cs        luật chặn + trả lời giả + script chạy trong trang (ẩn QC, chặn chuyển trang lén)
+  Safety.cs              chặn file chạy được, quyền, mở ứng dụng ngoài
   Store.cs               cấu hình (%LOCALAPPDATA%\DCD_WatchNoAds\settings.json)
   Setup.cs               tự cài / cập nhật / gỡ cài đặt (%LOCALAPPDATA%\Programs\DCD_WatchNoAds)
   InstallWindow.xaml     bảng cài đặt khi chạy exe từ ngoài thư mục cài
@@ -83,6 +108,8 @@ build.ps1                đóng gói + cài
 Hồ sơ trình duyệt (cookie, đăng nhập) nằm ở `%LOCALAPPDATA%\DCD_WatchNoAds\wvdata` — không nằm trong repo.
 
 ## Soi trang khi quảng cáo lọt
+
+Chạy thử với hồ sơ riêng (không đụng bản đang dùng): đặt `DCDW_PROFILE=<thư mục>`.
 
 Đặt biến môi trường `DCDW_DEBUG_PORT=9222` trước khi chạy app, rồi mở `http://127.0.0.1:9222`
 (hoặc nối DevTools Protocol) để xem trang đang nạp script nào.

@@ -27,6 +27,8 @@ public partial class MainWindow : Window
     /// <summary>Link mở tab mới sang tên miền khác vừa bị chặn — người dùng muốn thì bấm mở.</summary>
     private string? _lastPopup;
     private readonly DispatcherTimer _popupTimer = new() { Interval = TimeSpan.FromSeconds(10) };
+    /// <summary>Dòng báo ngắn trên thanh công cụ ("Đã chặn tải file nguy hiểm..."), tự tắt.</summary>
+    private readonly DispatcherTimer _noteTimer = new() { Interval = TimeSpan.FromSeconds(8) };
 
     private bool _full;
     private WindowState _prevState;
@@ -40,6 +42,7 @@ public partial class MainWindow : Window
         ChkAdBlock.IsChecked = _adOn;
         if (_store.Maximized) WindowState = WindowState.Maximized;
         _popupTimer.Tick += (_, _) => { _popupTimer.Stop(); BtnPopup.Visibility = Visibility.Collapsed; };
+        _noteTimer.Tick += (_, _) => { _noteTimer.Stop(); LblNote.Visibility = Visibility.Collapsed; };
 
         Loaded += async (_, _) => await InitAsync();
         Closed += (_, _) =>
@@ -83,6 +86,14 @@ public partial class MainWindow : Window
         s.AreDefaultContextMenusEnabled = true;
         s.IsStatusBarEnabled = false;      // khung link góc dưới — đỡ che phụ đề
         s.AreDevToolsEnabled = true;
+        s.IsReputationCheckingRequired = true;   // SmartScreen: chặn trang / file đã bị báo lừa đảo, mã độc
+
+        // lớp an toàn — luôn bật, không phụ thuộc "Chặn QC"
+        core.DownloadStarting += OnDownload;
+        core.PermissionRequested += OnPermission;
+        core.LaunchingExternalUriScheme += OnExternalScheme;
+        // trang báo về: vừa chặn một lần script tự lái sang tên miền khác
+        core.WebMessageReceived += OnPageMessage;
 
         // 3 tham số = thấy cả request bên trong iframe khác tên miền (player nhúng)
         core.AddWebResourceRequestedFilter("*",
@@ -221,13 +232,122 @@ public partial class MainWindow : Window
         }
 
         Blocked();
+        ShowBlockedLink(uri);
+    }
+
+    /// <summary>Hiện nút "↗ Mở link vừa chặn" trong 10 giây — người dùng thật sự muốn đi thì bấm.</summary>
+    private void ShowBlockedLink(string uri) => Dispatcher.BeginInvoke(() =>
+    {
+        _lastPopup = uri;
+        BtnPopup.ToolTip = uri;
+        BtnPopup.Visibility = Visibility.Visible;
+        _popupTimer.Stop();
+        _popupTimer.Start();
+    });
+
+    private void Note(string msg) => Dispatcher.BeginInvoke(() =>
+    {
+        LblNote.Text = "⚠ " + msg;
+        LblNote.ToolTip = msg;
+        LblNote.Visibility = Visibility.Visible;
+        _noteTimer.Stop();
+        _noteTimer.Start();
+    });
+
+    /// <summary>Script trong trang chặn được một lần tự chuyển sang tên miền khác (xem StealthBlock).</summary>
+    private void OnPageMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        if (!_adOn) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(e.WebMessageAsJson);
+            var r = doc.RootElement;
+            if (r.ValueKind != JsonValueKind.Object
+                || !r.TryGetProperty("dcd", out var kind) || kind.GetString() != "nav"
+                || !r.TryGetProperty("url", out var u)) return;
+            var url = u.GetString();
+            if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out var to)
+                || (to.Scheme != Uri.UriSchemeHttp && to.Scheme != Uri.UriSchemeHttps)) return;
+            Blocked();
+            Note("Trang tự chuyển sang " + to.Host + " — đã chặn");
+            ShowBlockedLink(url);
+        }
+        catch { }
+    }
+
+    // ================= an toàn =================
+
+    /// <summary>
+    /// Tải file: file chạy được (.exe, .msi, .bat, .apk...) chặn thẳng; file khác hỏi trước —
+    /// trang lừa đảo hay tự tải "bản cập nhật trình phát" ngay khi mở.
+    /// </summary>
+    private void OnDownload(object? sender, CoreWebView2DownloadStartingEventArgs e)
+    {
+        var op = e.DownloadOperation;
+        var name = System.IO.Path.GetFileName(e.ResultFilePath);
+        if (Safety.IsDangerousFile(name, op.MimeType))
+        {
+            e.Cancel = true;
+            Note("Đã chặn tải file nguy hiểm: " + name);
+            return;
+        }
+
+        var deferral = e.GetDeferral();
         Dispatcher.BeginInvoke(() =>
         {
-            _lastPopup = uri;
-            BtnPopup.ToolTip = uri;
-            BtnPopup.Visibility = Visibility.Visible;
-            _popupTimer.Stop();
-            _popupTimer.Start();
+            try
+            {
+                var r = MessageBox.Show(this,
+                    $"{Safety.Host(op.Uri)} muốn tải về máy:\n\n    {name}\n    ({Safety.Size(op.TotalBytesToReceive)})\n\n" +
+                    "Chỉ tải khi chính bạn vừa bấm nút tải. Cho tải không?",
+                    "Tải file", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+                if (r != MessageBoxResult.Yes) e.Cancel = true;
+            }
+            catch { e.Cancel = true; }
+            finally { deferral.Complete(); }
+        });
+    }
+
+    /// <summary>
+    /// Trang phim không cần quyền gì: thông báo (đường quảng cáo bẩn hay dùng nhất — "bấm Cho phép để
+    /// chứng minh không phải robot"), camera, micro, vị trí, clipboard... đều từ chối, không hiện hộp hỏi.
+    /// </summary>
+    private void OnPermission(object? sender, CoreWebView2PermissionRequestedEventArgs e)
+    {
+        if (e.PermissionKind == CoreWebView2PermissionKind.Autoplay) return;   // video tự chạy — để mặc định
+        e.State = CoreWebView2PermissionState.Deny;
+        e.SavesInProfile = false;
+        Note($"Đã từ chối {Safety.Host(e.Uri)} xin quyền {Safety.PermissionName(e.PermissionKind)}");
+    }
+
+    /// <summary>
+    /// Trang đòi mở ứng dụng ngoài (search-ms:, ms-msdt:, ...): giao thức nguy hiểm chặn thẳng;
+    /// trang tự đòi mà người dùng không bấm gì -> chặn; người dùng tự bấm (mailto:, magnet:...) -> hỏi.
+    /// </summary>
+    private void OnExternalScheme(object? sender, CoreWebView2LaunchingExternalUriSchemeEventArgs e)
+    {
+        var uri = e.Uri;
+        var scheme = uri.Contains(':') ? uri[..uri.IndexOf(':')] : uri;
+        if (Safety.IsDangerousScheme(uri) || !e.IsUserInitiated)
+        {
+            e.Cancel = true;
+            Note($"Đã chặn trang mở ứng dụng ngoài ({scheme}:)");
+            return;
+        }
+
+        var deferral = e.GetDeferral();
+        Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                var shown = uri.Length > 200 ? uri[..200] + "…" : uri;
+                var r = MessageBox.Show(this,
+                    $"{Safety.Host(e.InitiatingOrigin)} muốn mở ứng dụng ngoài:\n\n    {shown}\n\nMở không?",
+                    "Mở ứng dụng ngoài", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+                if (r != MessageBoxResult.Yes) e.Cancel = true;
+            }
+            catch { e.Cancel = true; }
+            finally { deferral.Complete(); }
         });
     }
 

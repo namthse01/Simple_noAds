@@ -12,7 +12,7 @@
     <Product>DCD_WatchNoAds</Product>
     <AssemblyTitle>DCD_WatchNoAds — xem phim không quảng cáo</AssemblyTitle>
     <Description>Trình duyệt xem phim chặn quảng cáo lén, không bị trang phát hiện</Description>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ApplicationIcon>appicon.ico</ApplicationIcon>
   </PropertyGroup>

@@ -11,8 +11,10 @@ public record SavedPage(string Title, string Url);
 /// </summary>
 public class Store
 {
-    public static string Root { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCD_WatchNoAds");
+    /// <summary>Đặt DCDW_PROFILE=thư mục để chạy thử với hồ sơ riêng, không đụng bản đang dùng.</summary>
+    public static string Root { get; } =
+        Environment.GetEnvironmentVariable("DCDW_PROFILE") is { Length: > 0 } p ? p
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DCD_WatchNoAds");
 
     /// <summary>Hồ sơ trình duyệt riêng (cookie, đăng nhập) — không dùng chung với DCDownload.</summary>
     public static string WebViewData => Path.Combine(Root, "wvdata");

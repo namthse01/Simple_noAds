@@ -227,6 +227,46 @@ public static class StealthBlock
           };
           try { window.open = mask(function open() { return fakeWin(); }, 'open'); } catch (e) {}
 
+          // ---- chuyen trang len: bam vao dau cung bi lai sang trang QC / trang lua dao ----
+          // Trinh duyet cho biet lan chuyen trang la do NGUOI bam link that (userInitiated) hay do
+          // script tu lai (location.href = ..., meta refresh, form.submit()). Script lai sang ten mien
+          // KHAC -> chan, bao app hien nut "Mo link vua chan". Cung site, quay lai, tai lai -> de yen.
+          try {
+            if (window.top === window && window.navigation && navigation.addEventListener) {
+              var goc = function (h) {
+                var p = (h || '').split('.');
+                if (p.length <= 2) return h;
+                var take = p[p.length - 2].length <= 3 && p[p.length - 1].length === 2 ? 3 : 2;
+                return p.slice(-take).join('.');
+              };
+              // link "bay": trong suot / phu kin ca trang — bam vao dau cung trung
+              var linkBay = function (el) {
+                try {
+                  if (!el || !el.getBoundingClientRect) return false;
+                  var r = el.getBoundingClientRect();
+                  if (r.width >= innerWidth * 0.8 && r.height >= innerHeight * 0.8) return true;
+                  for (var n = el; n && n.nodeType === 1; n = n.parentElement) {
+                    var st = getComputedStyle(n);
+                    if (parseFloat(st.opacity) < 0.1 || st.visibility === 'hidden') return true;
+                  }
+                } catch (e) {}
+                return false;
+              };
+              navigation.addEventListener('navigate', function (e) {
+                try {
+                  if (e.navigationType === 'traverse' || e.navigationType === 'reload' ||
+                      e.hashChange || e.downloadRequest || !e.cancelable) return;
+                  var d = new URL(e.destination.url);
+                  if (d.protocol !== 'http:' && d.protocol !== 'https:') return;
+                  if (location.protocol.indexOf('http') === 0 && goc(d.hostname) === goc(location.hostname)) return;
+                  if (e.userInitiated && !linkBay(e.sourceElement)) return;
+                  e.preventDefault();
+                  if (window.chrome && chrome.webview) chrome.webview.postMessage({ dcd: 'nav', url: d.href });
+                } catch (x) {}
+              });
+            }
+          } catch (e) {}
+
           // ---- khung QC that: trong suot + khong bam duoc, GIU kich thuoc ----
           var css =
             'iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[src*="adservice"],' +
